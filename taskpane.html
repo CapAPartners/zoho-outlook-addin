@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; frame-ancestors *;">
+  <title>ZoHo CRM</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c26;
+      --border:    #2a2f3e;
+      --accent:    #3b82f6;
+      --accent2:   #10b981;
+      --warn:      #f59e0b;
+      --danger:    #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    #header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #header .logo {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    #header .sender-email {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── States ──────────────────────────────── */
+    #loading, #not-found, #no-email {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p, #not-found p, #no-email p { font-size: 12px; }
+
+    /* ── Contact Card ────────────────────────── */
+    #contact-card {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .contact-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .contact-company {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .contact-phone {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Deal Block ──────────────────────────── */
+    #deal-block {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .deal-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .deal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .deal-amount {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .stage-badge {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: rgba(59,130,246,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(59,130,246,0.3);
+    }
+    .stage-badge.won   { background: rgba(16,185,129,0.12); color: var(--accent2); border-color: rgba(16,185,129,0.25); }
+    .stage-badge.lost  { background: rgba(239,68,68,0.12);  color: var(--danger);  border-color: rgba(239,68,68,0.25);  }
+    .stage-badge.quote { background: rgba(245,158,11,0.12); color: var(--warn);    border-color: rgba(245,158,11,0.25); }
+
+    .closed-total {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: rgba(16,185,129,0.06);
+      border: 1px solid rgba(16,185,129,0.15);
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    .closed-total .label { font-size: 10px; color: var(--muted); }
+    .closed-total .value { font-family: var(--mono); font-size: 12px; color: var(--accent2); font-weight: 500; }
+
+    .no-deals {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ── Tasks ───────────────────────────────── */
+    #tasks-block {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .task-dot.overdue { background: var(--danger); }
+    .task-dot.today   { background: var(--warn); }
+    .task-subject { font-size: 11px; color: var(--text); flex: 1; }
+    .task-due {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .task-due.overdue { color: var(--danger); }
+    .task-due.today   { color: var(--warn); }
+    .no-tasks { font-size: 11px; color: var(--muted); font-style: italic; }
+
+    /* ── Actions ─────────────────────────────── */
+    #actions-block {
+      padding: 12px 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 6px;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--border); border-color: #3a4255; }
+    .btn:last-child { margin-bottom: 0; }
+    .btn .btn-icon { margin-right: 6px; opacity: 0.7; }
+    .btn-primary { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); color: var(--accent); }
+    .btn-primary:hover { background: rgba(59,130,246,0.2); }
+    .btn-success { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.25); color: var(--accent2); }
+    .btn-success:hover { background: rgba(16,185,129,0.18); }
+
+    /* ── Modals / Panels ─────────────────────── */
+    .panel {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 16px 14px;
+      z-index: 100;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+    }
+    .panel.open { display: block; }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-close {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1;
+      background: none;
+      border: none;
+      color: var(--muted);
+    }
+    .panel-close:hover { color: var(--text); }
+
+    label {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+    label:first-of-type { margin-top: 0; }
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 60px; }
+    select option { background: var(--surface); }
+
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .panel-actions .btn { margin-bottom: 0; }
+    .btn-submit {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      flex: 1;
+    }
+    .btn-submit:hover { background: #2563eb; border-color: #2563eb; }
+    .btn-cancel { flex: 0 0 auto; width: auto; }
+
+    /* ── Toast ───────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 16px; left: 14px; right: 14px;
+      background: var(--accent2);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.2s;
+      z-index: 200;
+      pointer-events: none;
+    }
+    #toast.error { background: var(--danger); }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── New Contact form extras ─────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 12px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     CONFIGURATION — edit these 4 values only
+     ═══════════════════════════════════════════ -->
+<script>
+const CONFIG = {
+  workerUrl:     'https://misty-union-b2ec.dave-cde.workers.dev',
+  clientId:      '1000.ZO1567UBKVVJLP5PX1W4OA4W4GHVTX',
+  clientSecret:  '92819f4793122ec51951c2b710157ed410b94685a9',
+  refreshToken:  '1000.7197e5b0bd221a55e9a26ec2325f2686.89ff12129bd1992cf22f2b5891d10a6b',
+};
+</script>
+<!-- ═══════════════════════════════════════════ -->
+
+<!-- Header -->
+<div id="header">
+  <span class="logo">ZoHo CRM</span>
+  <span class="sender-email" id="sender-email">—</span>
+</div>
+
+<!-- Loading state -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Looking up contact…</p>
+</div>
+
+<!-- No email open -->
+<div id="no-email" style="display:none">
+  <p>Open an email to see CRM data.</p>
+</div>
+
+<!-- Contact not in ZoHo -->
+<div id="not-found" style="display:none">
+  <p style="margin-bottom:12px">Not found in ZoHo.</p>
+  <button class="btn btn-primary" onclick="openPanel('panel-new-contact')">
+    <span class="btn-icon">＋</span> Add as New Contact
+  </button>
+</div>
+
+<!-- Main content (hidden until loaded) -->
+<div id="main-content" style="display:none">
+
+  <!-- Contact -->
+  <div id="contact-card">
+    <div class="contact-name" id="c-name">—</div>
+    <div class="contact-company" id="c-company">—</div>
+    <div class="contact-phone" id="c-phone">—</div>
+  </div>
+
+  <!-- Deal -->
+  <div id="deal-block">
+    <div class="section-label">Open Deal</div>
+    <div id="deal-content"></div>
+  </div>
+
+  <!-- Tasks -->
+  <div id="tasks-block">
+    <div class="section-label">Open Tasks</div>
+    <div id="tasks-content"></div>
+  </div>
+
+  <!-- Actions -->
+  <div id="actions-block">
+    <div class="section-label">Actions</div>
+    <button class="btn btn-primary" onclick="openPanel('panel-stage')">
+      <span class="btn-icon">⟳</span> Update Deal Stage
+    </button>
+    <button class="btn" onclick="openPanel('panel-task')">
+      <span class="btn-icon">✓</span> Create Follow-up Task
+    </button>
+    <button class="btn btn-success" onclick="openPanel('panel-new-deal')">
+      <span class="btn-icon">＋</span> Create New Deal
+    </button>
+    <button class="btn" onclick="openPanel('panel-new-contact')" style="margin-top:4px;border-style:dashed;font-size:11px;color:var(--muted)">
+      Add Different Contact to ZoHo
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     PANELS (slide up from bottom)
+     ══════════════════════════════════ -->
+
+<!-- Update Stage -->
+<div class="panel" id="panel-stage">
+  <div class="panel-title">
+    Update Deal Stage
+    <button class="panel-close" onclick="closePanel('panel-stage')">✕</button>
+  </div>
+  <label>Deal</label>
+  <select id="stage-deal-select"></select>
+  <label>New Stage</label>
+  <select id="stage-select"></select>
+  <div class="panel-actions">
+    <button class="btn btn-cancel" onclick="closePanel('panel-stage')">Cancel</button>
+    <button class="btn btn-submit" onclick="submitUpdateStage()">Update</button>
+  </div>
+</div>
+
+<!-- Create Task -->
+<div class="panel" id="panel-task">
+  <div class="panel-title">
+    Create Follow-up Task
+    <button class="panel-close" onclick="closePanel('panel-task')">✕</button>
+  </div>
+  <label>Task Description</label>
+  <input type="text" id="task-subject" placeholder="e.g. Follow up on quote revision" />
+  <label>Due Date</label>
+  <input type="date" id="task-due" />
+  <div class="panel-actions">
+    <button class="btn btn-cancel" onclick="closePanel('panel-task')">Cancel</button>
+    <button class="btn btn-submit" onclick="submitCreateTask()">Create Task</button>
+  </div>
+</div>
+
+<!-- Create New Deal -->
+<div class="panel" id="panel-new-deal">
+  <div class="panel-title">
+    Create New Deal
+    <button class="panel-close" onclick="closePanel('panel-new-deal')">✕</button>
+  </div>
+  <label>Deal Name</label>
+  <input type="text" id="deal-name-input" placeholder="e.g. Acme — Custom Bracket Run" />
+  <label>Estimated Value ($)</label>
+  <input type="number" id="deal-amount-input" placeholder="0" />
+  <label>Stage</label>
+  <select id="deal-stage-input"></select>
+  <label>Expected Close Date</label>
+  <input type="date" id="deal-close-input" />
+  <div class="panel-actions">
+    <button class="btn btn-cancel" onclick="closePanel('panel-new-deal')">Cancel</button>
+    <button class="btn btn-submit" onclick="submitCreateDeal()">Create Deal</button>
+  </div>
+</div>
+
+<!-- New Contact -->
+<div class="panel" id="panel-new-contact">
+  <div class="panel-title">
+    Add New Contact
+    <button class="panel-close" onclick="closePanel('panel-new-contact')">✕</button>
+  </div>
+  <label>First Name</label>
+  <input type="text" id="nc-first" />
+  <label>Last Name</label>
+  <input type="text" id="nc-last" />
+  <label>Company</label>
+  <input type="text" id="nc-company" />
+  <label>Email</label>
+  <input type="email" id="nc-email" />
+  <label>Phone</label>
+  <input type="tel" id="nc-phone" />
+  <div class="panel-actions">
+    <button class="btn btn-cancel" onclick="closePanel('panel-new-contact')">Cancel</button>
+    <button class="btn btn-submit" onclick="submitCreateContact()">Add Contact</button>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════
+     APPLICATION LOGIC
+     ══════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────
+let state = {
+  accessToken: null,
+  contactId:   null,
+  deals:       [],
+  stages:      [],
+  senderEmail: null,
+};
+
+// ── Office Init ────────────────────────────────────────────
+Office.onReady(async (info) => {
+  if (info.host !== Office.HostType.Outlook) return;
+  await bootstrap();
+});
+
+async function bootstrap() {
+  try {
+    const email = getSenderEmail();
+    if (!email) { show('no-email'); return; }
+
+    document.getElementById('sender-email').textContent = email;
+    state.senderEmail = email;
+
+    show('loading');
+    state.accessToken = await getAccessToken();
+    state.stages       = await fetchDealStages();
+
+    const contact = await lookupContact(email);
+    if (!contact) { show('not-found'); prefillNewContact(email); return; }
+
+    state.contactId = contact.id;
+    const [deals, tasks, closedTotal] = await Promise.all([
+      fetchDeals(contact.id),
+      fetchTasks(contact.id),
+      fetchClosedDealsTotal(contact.id),
+    ]);
+
+    state.deals = deals;
+    renderContact(contact);
+    renderDeal(deals, closedTotal);
+    renderTasks(tasks);
+    populateStageSelects();
+    show('main-content');
+
+  } catch (err) {
+    console.error(err);
+    toast('Error: ' + err.message, true);
+    show('not-found');
+  }
+}
+
+// ── Get sender email from active Outlook item ──────────────
+function getSenderEmail() {
+  try {
+    const item = Office.context.mailbox.item;
+    if (!item) return null;
+    if (item.from) return item.from.emailAddress;
+    if (item.sender) return item.sender.emailAddress;
+    return null;
+  } catch { return null; }
+}
+
+// ── Token Management ───────────────────────────────────────
+async function getAccessToken() {
+  const res = await fetch(CONFIG.workerUrl, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      clientId:     CONFIG.clientId,
+      clientSecret: CONFIG.clientSecret,
+      refreshToken: CONFIG.refreshToken,
+    }),
+  });
+  if (!res.ok) throw new Error('Token fetch failed');
+  const data = await res.json();
+  if (!data.access_token) throw new Error('No access token returned');
+  return data.access_token;
+}
+
+// ── ZoHo API Helper ────────────────────────────────────────
+async function zoho(method, path, body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'Zoho-oauthtoken ' + state.accessToken,
+      'Content-Type':  'application/json',
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch('https://www.zohoapis.com/crm/v2' + path, opts);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ZoHo API ${res.status}: ${text.slice(0,120)}`);
+  }
+  return res.json();
+}
+
+// ── Lookup Contact by Email ────────────────────────────────
+async function lookupContact(email) {
+  const data = await zoho('GET', `/Contacts/search?email=${encodeURIComponent(email)}&fields=id,First_Name,Last_Name,Account_Name,Phone,Email`);
+  if (!data.data || data.data.length === 0) return null;
+  return data.data[0];
+}
+
+// ── Fetch Deals for Contact ────────────────────────────────
+async function fetchDeals(contactId) {
+  try {
+    const data = await zoho('GET', `/Contacts/${contactId}/Deals?fields=id,Deal_Name,Amount,Stage,Closing_Date`);
+    return data.data || [];
+  } catch { return []; }
+}
+
+// ── Fetch Closed Won Total ─────────────────────────────────
+async function fetchClosedDealsTotal(contactId) {
+  const deals = await fetchDeals(contactId);
+  return deals
+    .filter(d => d.Stage === 'Closed Won')
+    .reduce((sum, d) => sum + (d.Amount || 0), 0);
+}
+
+// ── Fetch Open Tasks for Contact ───────────────────────────
+async function fetchTasks(contactId) {
+  try {
+    const data = await zoho('GET', `/Tasks/search?criteria=((Who_Id:equals:${contactId}):(Status:not_equal:Completed))&fields=id,Subject,Due_Date,Status`);
+    return data.data || [];
+  } catch { return []; }
+}
+
+// ── Fetch Deal Stages from ZoHo Settings ──────────────────
+async function fetchDealStages() {
+  try {
+    const data = await zoho('GET', '/settings/fields?module=Deals');
+    const stageField = data.fields.find(f => f.api_name === 'Stage');
+    return stageField ? stageField.pick_list_values.map(p => p.display_value) : defaultStages();
+  } catch { return defaultStages(); }
+}
+
+function defaultStages() {
+  return ['Qualification','Needs Analysis','Value Proposition',
+          'Proposal/Price Quote','Negotiation/Review','Closed Won','Closed Lost'];
+}
+
+// ── Render: Contact ────────────────────────────────────────
+function renderContact(c) {
+  document.getElementById('c-name').textContent =
+    [c.First_Name, c.Last_Name].filter(Boolean).join(' ') || '—';
+  document.getElementById('c-company').textContent =
+    (c.Account_Name && c.Account_Name.name) || c.Account_Name || '—';
+  document.getElementById('c-phone').textContent = c.Phone || '—';
+}
+
+// ── Render: Deal ───────────────────────────────────────────
+function renderDeal(deals, closedTotal) {
+  const openDeals = deals.filter(d => d.Stage !== 'Closed Won' && d.Stage !== 'Closed Lost');
+  const el = document.getElementById('deal-content');
+
+  if (openDeals.length === 0) {
+    el.innerHTML = `<div class="no-deals">No open deals</div>`;
+  } else {
+    // Show most recent open deal
+    const d = openDeals[0];
+    const badgeClass = stageBadgeClass(d.Stage);
+    el.innerHTML = `
+      <div class="deal-name">${esc(d.Deal_Name)}</div>
+      <div class="deal-row">
+        <div class="deal-amount">${formatMoney(d.Amount)}</div>
+        <div class="stage-badge ${badgeClass}">${esc(d.Stage)}</div>
+      </div>
+      ${d.Closing_Date ? `<div style="font-size:10px;color:var(--muted);font-family:var(--mono)">Close: ${d.Closing_Date}</div>` : ''}
+    `;
+  }
+
+  // Always show closed total
+  const totalEl = document.createElement('div');
+  totalEl.className = 'closed-total';
+  totalEl.innerHTML = `
+    <span class="label">Total Closed Won</span>
+    <span class="value">${formatMoney(closedTotal)}</span>
+  `;
+  el.appendChild(totalEl);
+}
+
+// ── Render: Tasks ──────────────────────────────────────────
+function renderTasks(tasks) {
+  const el = document.getElementById('tasks-content');
+  if (tasks.length === 0) {
+    el.innerHTML = `<div class="no-tasks">No open tasks</div>`;
+    return;
+  }
+  el.innerHTML = tasks.slice(0, 5).map(t => {
+    const due     = t.Due_Date ? new Date(t.Due_Date) : null;
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const isToday = due && due.toDateString() === today.toDateString();
+    const isOver  = due && due < today && !isToday;
+    const cls     = isOver ? 'overdue' : isToday ? 'today' : '';
+    const dueStr  = due ? due.toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '';
+    return `
+      <div class="task-item">
+        <div class="task-dot ${cls}"></div>
+        <div class="task-subject">${esc(t.Subject)}</div>
+        <div class="task-due ${cls}">${dueStr}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Populate Stage Dropdowns ───────────────────────────────
+function populateStageSelects() {
+  const opts = state.stages.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  document.getElementById('stage-select').innerHTML     = opts;
+  document.getElementById('deal-stage-input').innerHTML = opts;
+
+  // Deal selector for stage update
+  const dealOpts = state.deals
+    .filter(d => d.Stage !== 'Closed Won' && d.Stage !== 'Closed Lost')
+    .map(d => `<option value="${d.id}">${esc(d.Deal_Name)}</option>`).join('');
+  document.getElementById('stage-deal-select').innerHTML =
+    dealOpts || '<option value="">No open deals</option>';
+}
+
+// ── Submit: Update Stage ───────────────────────────────────
+async function submitUpdateStage() {
+  const dealId = document.getElementById('stage-deal-select').value;
+  const stage  = document.getElementById('stage-select').value;
+  if (!dealId) { toast('No open deals to update', true); return; }
+  try {
+    await zoho('PUT', '/Deals', { data: [{ id: dealId, Stage: stage }] });
+    toast('Deal stage updated ✓');
+    closePanel('panel-stage');
+    refresh();
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── Submit: Create Task ────────────────────────────────────
+async function submitCreateTask() {
+  const subject = document.getElementById('task-subject').value.trim();
+  const due     = document.getElementById('task-due').value;
+  if (!subject) { toast('Please enter a task description', true); return; }
+  try {
+    await zoho('POST', '/Tasks', { data: [{
+      Subject:  subject,
+      Due_Date: due || undefined,
+      Who_Id:   { id: state.contactId, module: 'Contacts' },
+      Status:   'Not Started',
+    }]});
+    toast('Task created ✓');
+    closePanel('panel-task');
+    refresh();
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── Submit: Create Deal ────────────────────────────────────
+async function submitCreateDeal() {
+  const name   = document.getElementById('deal-name-input').value.trim();
+  const amount = document.getElementById('deal-amount-input').value;
+  const stage  = document.getElementById('deal-stage-input').value;
+  const close  = document.getElementById('deal-close-input').value;
+  if (!name) { toast('Please enter a deal name', true); return; }
+  try {
+    await zoho('POST', '/Deals', { data: [{
+      Deal_Name:    name,
+      Amount:       amount ? parseFloat(amount) : undefined,
+      Stage:        stage,
+      Closing_Date: close || undefined,
+      Contact_Name: { id: state.contactId },
+    }]});
+    toast('Deal created ✓');
+    closePanel('panel-new-deal');
+    refresh();
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── Submit: Create Contact ─────────────────────────────────
+async function submitCreateContact() {
+  const last = document.getElementById('nc-last').value.trim();
+  if (!last) { toast('Last name is required', true); return; }
+  try {
+    await zoho('POST', '/Contacts', { data: [{
+      First_Name:   document.getElementById('nc-first').value.trim() || undefined,
+      Last_Name:    last,
+      Account_Name: document.getElementById('nc-company').value.trim() || undefined,
+      Email:        document.getElementById('nc-email').value.trim() || undefined,
+      Phone:        document.getElementById('nc-phone').value.trim() || undefined,
+    }]});
+    toast('Contact added ✓');
+    closePanel('panel-new-contact');
+    bootstrap(); // re-run full load
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── Prefill new contact form with sender email ─────────────
+function prefillNewContact(email) {
+  document.getElementById('nc-email').value = email || '';
+  // Attempt to parse name from email local part
+  const local = email.split('@')[0].replace(/[._]/g, ' ');
+  const parts = local.split(' ');
+  if (parts.length >= 2) {
+    document.getElementById('nc-first').value = capitalize(parts[0]);
+    document.getElementById('nc-last').value  = capitalize(parts[parts.length - 1]);
+  }
+}
+
+// ── Refresh data after action ──────────────────────────────
+async function refresh() {
+  try {
+    state.accessToken = await getAccessToken();
+    const [deals, tasks, closedTotal] = await Promise.all([
+      fetchDeals(state.contactId),
+      fetchTasks(state.contactId),
+      fetchClosedDealsTotal(state.contactId),
+    ]);
+    state.deals = deals;
+    renderDeal(deals, closedTotal);
+    renderTasks(tasks);
+    populateStageSelects();
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── Utility ────────────────────────────────────────────────
+function show(id) {
+  ['loading','no-email','not-found','main-content'].forEach(s =>
+    document.getElementById(s).style.display = s === id ? '' : 'none'
+  );
+}
+function openPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+  document.getElementById(id).classList.add('open');
+  // Default task due date to tomorrow
+  if (id === 'panel-task') {
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    document.getElementById('task-due').value = t.toISOString().split('T')[0];
+  }
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatMoney(n) {
+  if (!n && n !== 0) return '—';
+  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
+function stageBadgeClass(stage) {
+  if (!stage) return '';
+  const s = stage.toLowerCase();
+  if (s.includes('won'))  return 'won';
+  if (s.includes('lost')) return 'lost';
+  if (s.includes('proposal') || s.includes('quote')) return 'quote';
+  return '';
+}
+</script>
+</body>
+</html>
