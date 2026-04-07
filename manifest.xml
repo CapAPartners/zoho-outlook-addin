@@ -6,7 +6,7 @@
   xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
   xsi:type="MailApp">
 
-  <!-- IMPORTANT: Replace YOUR-GITHUB-USERNAME below with your actual GitHub username -->
+  <!-- IMPORTANT: Replace CapAPartners below with your actual GitHub username -->
 
   <Id>a8f3d621-7b4e-4c9a-b2d5-8e1f6a3c9d07</Id>
   <Version>1.0.0.0</Version>
@@ -14,9 +14,9 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="ZoHo CRM" />
   <Description DefaultValue="Custom ZoHo CRM sidebar for Outlook" />
-  <IconUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/zoho-outlook-addin/icon-32.png" />
-  <HighResolutionIconUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/zoho-outlook-addin/icon-64.png" />
-  <SupportUrl DefaultValue="https://github.com/YOUR-GITHUB-USERNAME/zoho-outlook-addin" />
+  <IconUrl DefaultValue="https://CapAPartners.github.io/zoho-outlook-addin/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://CapAPartners.github.io/zoho-outlook-addin/icon-64.png" />
+  <SupportUrl DefaultValue="https://github.com/CapAPartners/zoho-outlook-addin" />
 
   <AppDomains>
     <AppDomain>https://www.zohoapis.com</AppDomain>
@@ -36,7 +36,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/zoho-outlook-addin/taskpane.html" />
+        <SourceLocation DefaultValue="https://CapAPartners.github.io/zoho-outlook-addin/taskpane.html" />
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
